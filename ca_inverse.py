@@ -17,12 +17,11 @@ unet = None
 vae = None 
 
 def prompt_msg(msg):
-    print(msg)
     try:
         from IPython.display import display
         display(msg)
     except: # noqa
-        pass
+        print(msg)
 
 def load_models():
     global clip 
