@@ -16,6 +16,14 @@ clip_tokenizer = None
 unet = None 
 vae = None 
 
+def prompt_msg(msg):
+    print(msg)
+    try:
+        from IPython.display import display
+        display(msg)
+    except: # noqa
+        pass
+
 def load_models():
     global clip 
     global clip_tokenizer
@@ -24,22 +32,27 @@ def load_models():
 
     #Init CLIP tokenizer and model
     model_path_clip = "openai/clip-vit-large-patch14"
+    prompt_msg("load clip tokenizer...")
     clip_tokenizer = CLIPTokenizer.from_pretrained(model_path_clip)
+    prompt_msg("load clip model...")
     clip_model = CLIPModel.from_pretrained(model_path_clip, torch_dtype=torch.float16)
     clip = clip_model.text_model
 
     #Init diffusion model
     auth_token = True #Replace this with huggingface auth token as a string if model is not already downloaded
     model_path_diffusion = "CompVis/stable-diffusion-v1-4"
+    prompt_msg("load sd unet... ")
     unet = UNet2DConditionModel.from_pretrained(model_path_diffusion, subfolder="unet", use_auth_token=auth_token, revision="fp16", torch_dtype=torch.float16)
+    prompt_msg("load sd vae...")
     vae = AutoencoderKL.from_pretrained(model_path_diffusion, subfolder="vae", use_auth_token=auth_token, revision="fp16", torch_dtype=torch.float16)
 
     #Move to GPU
     #device = "cuda"
+    prompt_msg("move all to device:cuda...")
     unet.to(device)
     vae.to(device)
     clip.to(device)
-    print("Loaded all models")
+    prompt_msg("Loaded all models")
 
 def init_attention_weights(weight_tuples):
     tokens_length = clip_tokenizer.model_max_length
@@ -412,3 +425,12 @@ def inversestablediffusion(init_image, prompt="", guidance_scale=3.0, steps=50, 
 def prompt_token(prompt, index):
     tokens = clip_tokenizer(prompt, padding="max_length", max_length=clip_tokenizer.model_max_length, truncation=True, return_tensors="pt", return_overflowing_tokens=True).input_ids[0]
     return clip_tokenizer.decode(tokens[index:index+1])
+
+def prompt_tokens(prompt):
+    model_max_length = 99
+    tokens = clip_tokenizer(prompt, padding="max_length", max_length=model_max_length, truncation=True, return_tensors="pt", return_overflowing_tokens=True).input_ids[0]
+    
+    tokens_decoded = []
+    for token in tokens:
+        tokens_decoded.append(clip_tokenizer.decode(token))
+    return tokens_decoded
